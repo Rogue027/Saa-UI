@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
 
 const bodyFont = Inter({
@@ -8,7 +8,7 @@ const bodyFont = Inter({
   display: 'swap',
 });
 
-const displayFont = Space_Grotesk({
+const displayFont = Manrope({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',

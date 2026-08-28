@@ -27,13 +27,14 @@ import {
   SiTelegram,
   SiTether,
 } from 'react-icons/si';
-import { ThreePanel } from '../scene/ThreePanel';
+import dynamic from 'next/dynamic';
 import { useSceneProgress } from '../scene/useSceneProgress';
 import { SiteCopy } from './copy';
 import { VerifiedBadge } from './VerifiedBadge';
 
 const iconSet = [SiTelegram, SiBinance, SiTether, SiSteam, SiPlaystation, SiGoogleplay];
 const catalogueIcons = [Gamepad2, Gift, KeyRound, Boxes];
+const FlowVisual = dynamic(() => import('./FlowVisual'), { ssr: false });
 
 type Theme = 'light' | 'dark';
 type StyleVars = CSSProperties & Record<'--scroll-progress' | '--pointer-x' | '--pointer-y', number>;
@@ -243,20 +244,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
               </div>
             </div>
 
-            <div className="v-flow__scene">
-              <div className="v-scene-grid" />
-              <div className="v-static-flow" aria-hidden="true">
-                <div className="v-static-order"><span /><i /><i /><i /></div>
-                <div className={`v-static-rings v-static-rings--${activeBeat}`}><span /><span /><span /></div>
-                <div className={`v-static-key ${activeBeat === 2 ? 'is-delivered' : ''}`}><KeyRound size={29} /></div>
-              </div>
-              <ThreePanel progress={flowProgress} />
-              <div className="v-scene-status">
-                <span>0{activeBeat + 1}</span>
-                <strong>{text.sceneLabels[activeBeat]}</strong>
-                <i style={{ width: `${Math.max(8, flowProgress * 100)}%` }} />
-              </div>
-            </div>
+            <FlowVisual activeBeat={activeBeat} progress={flowProgress} content={text.flowVisual} labels={text.sceneLabels} />
           </div>
         </section>
 
