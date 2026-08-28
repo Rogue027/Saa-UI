@@ -6,7 +6,6 @@ import {
   Boxes,
   Check,
   ChevronDown,
-  CreditCard,
   Gamepad2,
   Gift,
   KeyRound,
@@ -20,27 +19,37 @@ import {
   X,
 } from 'lucide-react';
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  SiBinance,
+  SiGoogleplay,
+  SiPlaystation,
+  SiSteam,
+  SiTelegram,
+  SiTether,
+} from 'react-icons/si';
 import { ThreePanel } from '../scene/ThreePanel';
 import { useSceneProgress } from '../scene/useSceneProgress';
 import { SiteCopy } from './copy';
 import { VerifiedBadge } from './VerifiedBadge';
 
-const iconSet = [Send, CreditCard, Gamepad2, Gift, KeyRound, Bot];
+const iconSet = [SiTelegram, SiBinance, SiTether, SiSteam, SiPlaystation, SiGoogleplay];
 const catalogueIcons = [Gamepad2, Gift, KeyRound, Boxes];
 
 type Theme = 'light' | 'dark';
 type StyleVars = CSSProperties & Record<'--scroll-progress' | '--pointer-x' | '--pointer-y', number>;
+type HeroStyle = CSSProperties & Record<'--hero-progress', number>;
 
 export default function VeyitSite({ text }: { text: SiteCopy }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [menuOpen, setMenuOpen] = useState(false);
   const [pageProgress, setPageProgress] = useState(0);
+  const [heroProgress, setHeroProgress] = useState(0);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const flowRef = useRef<HTMLElement>(null);
   const heroStageRef = useRef<HTMLDivElement>(null);
+  const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const flowProgress = useSceneProgress(flowRef);
   const activeBeat = Math.min(2, Math.floor(flowProgress * 3));
-  const nextLocale = text.locale === 'en' ? 'hi' : 'en';
 
   const stageStyle = useMemo<StyleVars>(() => ({
     '--scroll-progress': pageProgress,
@@ -63,6 +72,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
       frame = 0;
       const total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       setPageProgress(Math.min(1, Math.max(0, window.scrollY / total)));
+      setHeroProgress(Math.min(1, Math.max(0, window.scrollY / Math.max(1, window.innerHeight * 0.88))));
     };
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -72,6 +82,35 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
     return () => {
       window.removeEventListener('scroll', onScroll);
       if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let previousDpr = window.devicePixelRatio;
+    let animation: Animation | null = null;
+
+    const handleViewportZoom = () => {
+      const nextDpr = window.devicePixelRatio;
+      if (Math.abs(nextDpr - previousDpr) < 0.02) return;
+      const isZoomingIn = nextDpr > previousDpr;
+      previousDpr = nextDpr;
+      animation?.cancel();
+      animation = heroTitleRef.current?.animate([
+        { transform: 'perspective(1100px) translateZ(0) scale(1)', letterSpacing: '-0.073em', opacity: 1, filter: 'blur(0px)' },
+        isZoomingIn
+          ? { transform: 'perspective(1100px) translateZ(150px) scale(1.05)', letterSpacing: '-0.125em', opacity: 0.62, filter: 'blur(1.5px)' }
+          : { transform: 'perspective(1100px) translateZ(-430px) scale(0.72)', letterSpacing: '-0.14em', opacity: 0.38, filter: 'blur(3px)' },
+        { transform: 'perspective(1100px) translateZ(0) scale(1)', letterSpacing: '-0.073em', opacity: 1, filter: 'blur(0px)' },
+      ], { duration: 780, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }) ?? null;
+    };
+
+    window.addEventListener('resize', handleViewportZoom, { passive: true });
+    window.visualViewport?.addEventListener('resize', handleViewportZoom, { passive: true });
+    return () => {
+      animation?.cancel();
+      window.removeEventListener('resize', handleViewportZoom);
+      window.visualViewport?.removeEventListener('resize', handleViewportZoom);
     };
   }, []);
 
@@ -88,7 +127,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
     }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [text.locale]);
+  }, []);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -107,21 +146,20 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
 
   return (
     <main className="v-site" id="top">
-      <a className="v-skip" href="#content">Skip to content</a>
+      <a className="v-skip" href="#content">{text.skip}</a>
       <header className="v-header">
-        <a className="v-brand" href="#top" aria-label="Veyit home">
+        <a className="v-brand" href="#top" aria-label={text.homeLabel}>
           <span className="v-brand__mark"><span /></span>
           <span>Veyit</span>
         </a>
 
-        <nav className="v-nav" aria-label="Primary navigation">
+        <nav className="v-nav" aria-label={text.primaryNavigation}>
           {text.nav.map((item, index) => (
             <a key={item} href={['#top', '#suppliers', '#how', '#pricing', '#about'][index]}>{item}</a>
           ))}
         </nav>
 
         <div className="v-header__actions">
-          <a className="v-language" href={`/${nextLocale}`} aria-label={text.languageLabel}>{text.language}</a>
           <button className="v-icon-button" onClick={toggleTheme} aria-label={text.theme} type="button">
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
@@ -140,11 +178,11 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
       </header>
 
       <div id="content">
-        <section className="v-hero">
+        <section className="v-hero" style={{ '--hero-progress': heroProgress } as HeroStyle}>
           <div className="v-hero__glow" />
           <div className="v-hero__copy">
             <p className="v-kicker v-kicker--blue"><span />{text.eyebrow}</p>
-            <h1>{text.heroTitle}</h1>
+            <h1 ref={heroTitleRef}>{text.heroTitle}</h1>
             <p className="v-hero__deck">{text.heroBody}</p>
             <div className="v-actions">
               <a className="v-button v-button--primary" href="#pricing">{text.primaryCta}<ArrowRight size={16} /></a>
@@ -176,7 +214,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
               const Icon = iconSet[index];
               return (
                 <div className={`v-orbit-item v-orbit-item--${index + 1}`} key={label}>
-                  <span><Icon size={20} strokeWidth={1.8} /></span>
+                  <span className={`v-brand-icon v-brand-icon--${index + 1}`}><Icon size={21} /></span>
                   <small>{label}</small>
                 </div>
               );
