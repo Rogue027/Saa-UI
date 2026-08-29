@@ -6,7 +6,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "sync:launch": "node scripts/sync-launch-frames.mjs",
+    "predev": "npm run sync:launch",
     "dev": "vinext dev",
+    "prebuild": "npm run sync:launch",
     "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"

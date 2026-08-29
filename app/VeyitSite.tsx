@@ -6,16 +6,11 @@ import {
   Boxes,
   Check,
   ChevronDown,
-  Gamepad2,
-  Gift,
-  KeyRound,
-  LockKeyhole,
   Menu,
   Moon,
   Send,
   ShieldCheck,
   Sun,
-  WalletCards,
   X,
 } from 'lucide-react';
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,11 +25,11 @@ import {
 import dynamic from 'next/dynamic';
 import { useSceneProgress } from '../scene/useSceneProgress';
 import { SiteCopy } from './copy';
-import { VerifiedBadge } from './VerifiedBadge';
 
 const iconSet = [SiTelegram, SiBinance, SiTether, SiSteam, SiPlaystation, SiGoogleplay];
-const catalogueIcons = [Gamepad2, Gift, KeyRound, Boxes];
+const navTargets = ['#top', '#beyond', '#how', '#pricing', '#start'];
 const FlowVisual = dynamic(() => import('./FlowVisual'), { ssr: false });
+const RocketTransition = dynamic(() => import('./RocketTransition'), { ssr: false });
 
 type Theme = 'light' | 'dark';
 type StyleVars = CSSProperties & Record<'--scroll-progress' | '--pointer-x' | '--pointer-y', number>;
@@ -156,7 +151,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
 
         <nav className="v-nav" aria-label={text.primaryNavigation}>
           {text.nav.map((item, index) => (
-            <a key={item} href={['#top', '#suppliers', '#how', '#pricing', '#about'][index]}>{item}</a>
+            <a key={item} href={navTargets[index]}>{item}</a>
           ))}
         </nav>
 
@@ -172,7 +167,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
 
         <div className={`v-mobile-menu ${menuOpen ? 'is-open' : ''}`}>
           {text.nav.map((item, index) => (
-            <a onClick={() => setMenuOpen(false)} key={item} href={['#top', '#suppliers', '#how', '#pricing', '#about'][index]}>{item}</a>
+            <a onClick={() => setMenuOpen(false)} key={item} href={navTargets[index]}>{item}</a>
           ))}
           <a onClick={() => setMenuOpen(false)} href="#start">{text.openStore}</a>
         </div>
@@ -248,73 +243,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
           </div>
         </section>
 
-        <section className="v-trust" id="about">
-          <div className="v-section-head" data-reveal>
-            <p className="v-kicker v-kicker--blue">{text.trustKicker}</p>
-            <h2>{text.trustTitle}</h2>
-            <p>{text.trustBody}</p>
-          </div>
-          <div className="v-trust-grid">
-            {text.trustCards.map((card, index) => {
-              const Icon = [WalletCards, ShieldCheck, LockKeyhole][index];
-              return (
-                <article className="v-trust-card" data-reveal key={card.index}>
-                  <div className="v-trust-card__top"><span>{card.index}</span><Icon size={22} /></div>
-                  <h3>{card.title}</h3>
-                  <p>{card.body}</p>
-                  <div className={`v-trust-art v-trust-art--${index + 1}`} aria-hidden="true"><span /><span /><span /></div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="v-catalogue">
-          <div className="v-section-head v-section-head--light" data-reveal>
-            <p className="v-kicker v-kicker--blue">{text.catalogueKicker}</p>
-            <h2>{text.catalogueTitle}</h2>
-          </div>
-          <div className="v-catalogue-grid">
-            {text.catalogue.map((item, index) => {
-              const Icon = catalogueIcons[index];
-              return (
-                <article className="v-product-card" data-reveal key={item.title}>
-                  <div className="v-product-card__top"><Icon size={20} /><span>0{index + 1}</span></div>
-                  <div className="v-product-object" aria-hidden="true"><span>{item.mark}</span><i /></div>
-                  <p>{item.tag}</p>
-                  <h3>{item.title}</h3>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="v-network" id="suppliers">
-          <div className="v-network__copy" data-reveal>
-            <p className="v-kicker v-kicker--blue">{text.networkKicker}</p>
-            <h2>{text.networkTitle}</h2>
-            <p>{text.networkBody}</p>
-            <ul>
-              {text.networkPoints.map((point) => <li key={point}><Check size={15} />{point}</li>)}
-            </ul>
-            <a className="v-text-cta" href="#badge">{text.badgeCta}<ArrowRight size={16} /></a>
-          </div>
-
-          <div className="v-profile-wrap" data-reveal id="badge">
-            <span className="v-profile-orbit v-profile-orbit--one" />
-            <span className="v-profile-orbit v-profile-orbit--two" />
-            <article className="v-profile-card">
-              <div className="v-profile-card__header">
-                <div className="v-profile-logo"><Bot size={25} /></div>
-                <div><span>{text.profileLabel}</span><small>veyit.com/suppliers/your-store</small></div>
-              </div>
-              <VerifiedBadge label={text.badgeDate} detail={text.badgeGranted} />
-              <p>{text.profileBody}</p>
-              <div className="v-profile-services"><span>Game top-ups</span><span>Gift cards</span><span>Keys</span></div>
-              <div className="v-profile-stats"><span><small>Orders</small><strong>Activity band</strong></span><span><small>Reliability</small><strong>Published band</strong></span></div>
-            </article>
-          </div>
-        </section>
+        <RocketTransition content={text.launch} />
 
         <section className="v-pricing" id="pricing">
           <div className="v-section-head v-section-head--light" data-reveal>
@@ -355,7 +284,7 @@ export default function VeyitSite({ text }: { text: SiteCopy }) {
 
       <footer className="v-footer">
         <div><a className="v-brand" href="#top"><span className="v-brand__mark"><span /></span><span>Veyit</span></a><p>{text.footerLine}</p></div>
-        <div><strong>{text.nav[1]}</strong><a href="#suppliers">{text.networkKicker}</a><a href="#badge">{text.badgeCta}</a></div>
+        <div><strong>{text.nav[1]}</strong><a href="#beyond">{text.launch.eyebrow}</a></div>
         <div><strong>{text.nav[2]}</strong><a href="#how">{text.beats[0].title}</a><a href="#how">{text.beats[1].title}</a><a href="#how">{text.beats[2].title}</a></div>
         <p className="v-footer__legal">{text.legalNote}</p>
       </footer>
