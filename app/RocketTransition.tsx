@@ -15,8 +15,11 @@ type RocketTransitionProps = {
 };
 
 const clamp = (value: number, minimum = 0, maximum = 1) => Math.min(maximum, Math.max(minimum, value));
-const easeInOut = (value: number) => value * value * (3 - 2 * value);
 const revealEase = [0.22, 1, 0.36, 1] as const;
+
+type NavigatorWithConnection = Navigator & {
+  connection?: { saveData?: boolean };
+};
 
 export default function RocketTransition({ content }: RocketTransitionProps) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -36,12 +39,16 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
     let targetFrame = 0;
     let lastDrawnFrame = -1;
     let latestProgress = 0;
+    let renderedProgress = 0;
+    let needsScrollMeasurement = true;
+    let hasInitialProgress = false;
     let hasRenderedFirstFrame = false;
     let lastMessageVisible = false;
     const frameCache = new Map<number, HTMLImageElement>();
     const pendingFrames = new Map<number, HTMLImageElement>();
     const recentlyUsed: number[] = [];
     const maximumCachedFrames = window.innerWidth < 700 ? 12 : 22;
+    const warmController = new AbortController();
     const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
 
     if (!context) {
@@ -168,19 +175,12 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
       [1, -1, 2, -2, 4, -4, 7].forEach((offset) => loadFrame(targetFrame + offset, frames));
     };
 
-    const updateFromScroll = (frames: string[]) => {
-      scrollFrame = 0;
-      if (disposed || reduceMotion) return;
-
-      const sectionTop = section.getBoundingClientRect().top;
-      const scrollableDistance = Math.max(1, section.offsetHeight - window.innerHeight);
-      latestProgress = clamp(-sectionTop / scrollableDistance);
-
-      const sequenceProgress = easeInOut(clamp((latestProgress - 0.08) / 0.8));
+    const renderProgress = (frames: string[]) => {
+      const sequenceProgress = clamp((renderedProgress - 0.08) / 0.82);
       targetFrame = Math.round(sequenceProgress * (frames.length - 1));
-      const imageOpacity = 1 - clamp((latestProgress - 0.88) / 0.075);
-      const calmOpacity = clamp((latestProgress - 0.82) / 0.145);
-      const shouldRevealMessage = latestProgress >= 0.958;
+      const imageOpacity = 1 - clamp((renderedProgress - 0.91) / 0.055);
+      const calmOpacity = clamp((renderedProgress - 0.89) / 0.075);
+      const shouldRevealMessage = renderedProgress >= 0.97;
 
       section.style.setProperty('--launch-image-opacity', imageOpacity.toFixed(4));
       section.style.setProperty('--launch-calm-opacity', calmOpacity.toFixed(4));
@@ -194,8 +194,57 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
       preloadNeighborhood(frames);
     };
 
+    const animateToScrollPosition = (frames: string[]) => {
+      scrollFrame = 0;
+      if (disposed || reduceMotion) return;
+
+      if (needsScrollMeasurement) {
+        const sectionTop = section.getBoundingClientRect().top;
+        const scrollableDistance = Math.max(1, section.offsetHeight - window.innerHeight);
+        latestProgress = clamp(-sectionTop / scrollableDistance);
+        needsScrollMeasurement = false;
+
+        if (!hasInitialProgress) {
+          renderedProgress = latestProgress;
+          hasInitialProgress = true;
+        }
+      }
+
+      const progressDifference = latestProgress - renderedProgress;
+      if (Math.abs(progressDifference) < 0.00025) {
+        renderedProgress = latestProgress;
+      } else {
+        renderedProgress += progressDifference * 0.16;
+      }
+
+      renderProgress(frames);
+
+      if (Math.abs(latestProgress - renderedProgress) >= 0.00025 || needsScrollMeasurement) {
+        scrollFrame = window.requestAnimationFrame(() => animateToScrollPosition(frames));
+      }
+    };
+
     const requestScrollUpdate = (frames: string[]) => {
-      if (!scrollFrame) scrollFrame = window.requestAnimationFrame(() => updateFromScroll(frames));
+      needsScrollMeasurement = true;
+      if (!scrollFrame) scrollFrame = window.requestAnimationFrame(() => animateToScrollPosition(frames));
+    };
+
+    const warmFrameResponses = async (frames: string[]) => {
+      const connection = (navigator as NavigatorWithConnection).connection;
+      if (connection?.saveData) return;
+
+      const keyframes = frames.filter((_frame, index) => index % 8 === 0);
+      const remainingFrames = frames.filter((_frame, index) => index % 8 !== 0);
+      const loadingOrder = [...keyframes, ...remainingFrames];
+
+      for (let index = 0; index < loadingOrder.length && !disposed; index += 4) {
+        const batch = loadingOrder.slice(index, index + 4);
+        await Promise.allSettled(batch.map(async (url) => {
+          const response = await fetch(url, { cache: 'force-cache', signal: warmController.signal });
+          if (response.ok) await response.arrayBuffer();
+        }));
+        await new Promise((resolve) => window.setTimeout(resolve, 24));
+      }
     };
 
     const initialise = async () => {
@@ -211,8 +260,8 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
         loadFrame(targetFrame, manifest.frames, true);
 
         if (reduceMotion) {
-          section.style.setProperty('--launch-image-opacity', '0.42');
-          section.style.setProperty('--launch-calm-opacity', '0.7');
+          section.style.setProperty('--launch-image-opacity', '0.3');
+          section.style.setProperty('--launch-calm-opacity', '0.82');
           lastMessageVisible = true;
           setMessageVisible(true);
           return;
@@ -227,7 +276,8 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
           });
         };
 
-        updateFromScroll(manifest.frames);
+        requestScrollUpdate(manifest.frames);
+        void warmFrameResponses(manifest.frames);
         window.addEventListener('scroll', onScroll, { passive: true });
         window.addEventListener('resize', onResize, { passive: true });
 
@@ -251,6 +301,7 @@ export default function RocketTransition({ content }: RocketTransitionProps) {
       removeListeners?.();
       if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
       if (resizeFrame) window.cancelAnimationFrame(resizeFrame);
+      warmController.abort();
       pendingFrames.forEach((image) => {
         image.onload = null;
         image.onerror = null;
