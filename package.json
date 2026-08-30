@@ -11,6 +11,8 @@
     "dev": "vinext dev",
     "prebuild": "npm run sync:launch",
     "build": "vinext build",
+    "prebuild:vercel": "npm run sync:launch",
+    "build:vercel": "next build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
