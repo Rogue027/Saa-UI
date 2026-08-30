@@ -161,6 +161,7 @@ html[data-theme='dark'] .v-kicker--blue { color: var(--accent-400); }
 .v-section-head--light { color: var(--ink); }
 .v-launch { --launch-image-opacity: 1; --launch-calm-opacity: 0; position: relative; height: 470vh; background: var(--ink-900); color: var(--text-primary); }
 .v-launch__sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; background: var(--ink-900); }
+.v-launch.is-catching-up .v-launch__sticky { position: fixed; z-index: 40; inset: 0; width: 100%; height: 100svh; }
 .v-launch__fallback, .v-launch__canvas, .v-launch__calm { position: absolute; inset: 0; width: 100%; height: 100%; }
 .v-launch__fallback { z-index: 0; background: var(--ink-900); }
 .v-launch__canvas { z-index: 1; display: block; opacity: var(--launch-image-opacity); transition: opacity 100ms linear; }
